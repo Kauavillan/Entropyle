@@ -29,6 +29,7 @@ export function GameGrid() {
               const evaluationState =
                 submitted?.evaluation[colIndex]?.state ?? "empty";
               const shouldReveal = Boolean(submitted);
+              // Active apenas se for a linha atual E o índice for igual ao activeIndex
               const activeCell = isCurrentRow && colIndex === activeIndex;
 
               return (

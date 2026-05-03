@@ -9,6 +9,7 @@ import { GameStatus } from "@/components/GameStatus";
 import { SuccessModal } from "@/components/SuccessModal";
 import { VirtualKeyboard } from "@/components/VirtualKeyboard";
 import { useGameStore } from "@/stores/use-game-store";
+import GridsContainer from "./GridsContainer";
 
 export function TermoGame() {
   const gameStatus = useGameStore((state) => state.gameStatus);
@@ -119,7 +120,7 @@ export function TermoGame() {
         </div>
 
         <GameStatus message={feedbackMessage} />
-        <GameGrid />
+        <GridsContainer />
         <VirtualKeyboard />
       </motion.section>
 

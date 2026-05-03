@@ -32,10 +32,14 @@ export function LetterCell({
 }: LetterCellProps) {
   return (
     <motion.button
+      key={`${active ? "active" : "inactive"}`}
       type="button"
       initial={false}
       animate={{
         scale: active ? 1.03 : 1,
+        borderColor: active
+          ? "#ffffff80"
+          : stateClassMap[state].match(/border-([a-z]+)-\d+/)?.[1],
         rotateX: reveal ? [0, 90, 0] : 0,
       }}
       transition={{
@@ -44,7 +48,7 @@ export function LetterCell({
       }}
       onClick={onClick}
       className={[
-        "flex h-14 w-14 items-center justify-center rounded-lg border-2",
+        "flex h-14 w-14 items-center justify-center rounded-lg border-2 outline-none",
         "text-2xl font-bold uppercase shadow-[0_6px_24px_rgba(0,0,0,0.2)]",
         selectable ? "cursor-pointer" : "cursor-default",
         stateClassMap[state],
