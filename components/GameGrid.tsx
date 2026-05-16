@@ -1,20 +1,46 @@
 "use client";
 
-import { WORD_LENGTH, MAX_ATTEMPTS } from "@/lib/game/constants";
+import { PHASE_CONFIGS } from "@/lib/game/constants";
 import { LetterCell } from "@/components/items/LetterCell";
 import { useGameStore } from "@/stores/use-game-store";
 
-export function GameGrid() {
-  const guesses = useGameStore((state) => state.guesses);
+type GameGridProps = {
+  gridIndex: number;
+};
+
+export function GameGrid({ gridIndex }: GameGridProps) {
+  const currentPhaseIndex = useGameStore((state) => state.currentPhaseIndex);
+  const phaseGrids = useGameStore((state) => state.phaseGrids);
+  const attemptsUsed = useGameStore((state) => state.attemptsUsed);
   const currentGuess = useGameStore((state) => state.currentGuess);
   const activeIndex = useGameStore((state) => state.activeIndex);
+  const gameStatus = useGameStore((state) => state.gameStatus);
+  const isAwaitingNextPhase = useGameStore(
+    (state) => state.isAwaitingNextPhase,
+  );
   const setActiveIndex = useGameStore((state) => state.setActiveIndex);
+
+  const phaseConfig = PHASE_CONFIGS[currentPhaseIndex];
+  const grid = phaseGrids[gridIndex];
+  const effectiveWordLength = useGameStore((s) => s.effectiveWordLength);
+  const effectiveMaxAttempts = useGameStore((s) => s.effectiveMaxAttempts ?? phaseConfig.maxAttempts);
+
+  if (!grid) {
+    return null;
+  }
 
   return (
     <div className="grid gap-2 sm:gap-3">
-      {Array.from({ length: MAX_ATTEMPTS }, (_, rowIndex) => {
-        const submitted = guesses[rowIndex];
-        const isCurrentRow = rowIndex === guesses.length;
+      {Array.from({ length: effectiveMaxAttempts }, (_, rowIndex) => {
+        const submitted = grid.guesses[rowIndex];
+        const hasAttemptsLeft = attemptsUsed < phaseConfig.maxAttempts;
+        const isCurrentRow =
+          rowIndex === attemptsUsed &&
+          !submitted &&
+          !grid.solved &&
+          hasAttemptsLeft &&
+          gameStatus === "playing" &&
+          !isAwaitingNextPhase;
 
         const letters = submitted
           ? submitted.word.split("")
@@ -24,12 +50,11 @@ export function GameGrid() {
 
         return (
           <div key={`row-${rowIndex}`} className="flex gap-2 sm:gap-3">
-            {Array.from({ length: WORD_LENGTH }, (_, colIndex) => {
+            {Array.from({ length: effectiveWordLength }, (_, colIndex) => {
               const letter = letters[colIndex] ?? "";
               const evaluationState =
                 submitted?.evaluation[colIndex]?.state ?? "empty";
               const shouldReveal = Boolean(submitted);
-              // Active apenas se for a linha atual E o índice for igual ao activeIndex
               const activeCell = isCurrentRow && colIndex === activeIndex;
 
               return (
