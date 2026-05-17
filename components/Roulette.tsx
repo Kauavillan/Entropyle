@@ -1,7 +1,7 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import { Wheel } from "react-custom-roulette";
 import { MODIFIER_REGISTRY } from "@/lib/game/modifiers/registry";
 import { useGameStore } from "@/stores/use-game-store";
 
@@ -22,6 +22,11 @@ const ITEMS: RouletteItem[] = MODIFIER_REGISTRY.map((modifier, index) => ({
   ...modifier,
   color: COLORS_ARRAY[index % COLORS_ARRAY.length],
 }));
+
+const Wheel = dynamic(
+  () => import("react-custom-roulette").then((module) => module.Wheel),
+  { ssr: false },
+);
 
 /**
  * Not in seconds, but a coeficient for the duration. It's the
