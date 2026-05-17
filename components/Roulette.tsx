@@ -82,7 +82,7 @@ export function Roulette() {
     const picked = ITEMS[prizeNumber];
     if (appliedKeys.has(picked.modifier)) return;
 
-    await setModifier("top100Words");
+    await setModifier(picked.modifier);
   }
 
   return (
