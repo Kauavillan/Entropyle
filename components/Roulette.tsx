@@ -110,7 +110,7 @@ export function Roulette() {
             outerBorderWidth={4}
             innerBorderColor="#ffffff10"
             innerBorderWidth={8}
-            fontSize={16}
+            fontSize={14}
             radiusLineWidth={2}
             radiusLineColor="#ffffff11"
             spinDuration={spinDuration}

@@ -8,12 +8,12 @@ export const MODIFIER_REGISTRY: Modifier[] = [
   { modifier: "top100Words", description: "top 100 fáceis" },
   { modifier: "top300Words", description: "top 300 difíceis" },
   { modifier: "accumulateAttempts", description: "Acumular tentativas" },
-  { modifier: "vowelCount", description: "Mostrar qtd vogais" },
+  { modifier: "vowelCount", description: "Mostrar n° de vogais" },
   {
     modifier: "firstGuessReveal",
     description: "Revelar 1 letra",
   },
-  { modifier: "OSREVNI", description: "osrevnI" },
+  { modifier: "OSREVNI", description: "osrevnI: letras invertidas" },
 ];
 
 export function getModifierByKey(modifierKey: Modifier["modifier"]): Modifier {
