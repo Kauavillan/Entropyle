@@ -11,6 +11,7 @@ type LetterCellProps = {
   index?: number;
   active?: boolean;
   selectable?: boolean;
+  sizeClass?: string;
   onClick?: () => void;
 };
 
@@ -29,6 +30,7 @@ export function LetterCell({
   index = 0,
   active = false,
   selectable = false,
+  sizeClass = "h-14 w-14 text-2xl",
   onClick,
 }: LetterCellProps) {
   return (
@@ -49,8 +51,9 @@ export function LetterCell({
       }}
       onClick={onClick}
       className={[
-        "flex h-14 w-14 items-center justify-center rounded-lg border-2 outline-none",
-        "text-2xl font-bold uppercase shadow-[0_6px_24px_rgba(0,0,0,0.2)]",
+        "flex items-center justify-center rounded-lg border-2 outline-none",
+        sizeClass,
+        "font-bold uppercase shadow-[0_6px_24px_rgba(0,0,0,0.2)]",
         selectable ? "cursor-pointer" : "cursor-default",
         stateClassMap[state],
       ].join(" ")}

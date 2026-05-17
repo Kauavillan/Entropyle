@@ -33,31 +33,56 @@ export function Roulette() {
   const pendingPhase = useGameStore((s) => s.pendingPhaseIndex);
 
   const setModifier = useGameStore((s) => s.setModifier);
+  const appliedModifiers = useGameStore((s) => s.appliedModifiers);
 
   const [mustSpin, setMustSpin] = useState(false);
   const [prizeNumber, setPrizeNumber] = useState(0);
+
+  const appliedKeys = useMemo(
+    () => new Set(appliedModifiers.map((m) => m.modifier)),
+    [appliedModifiers],
+  );
 
   const data = useMemo(
     () => ITEMS.map((it) => ({ option: it.description })),
     [],
   );
-  const backgroundColors = useMemo(() => ITEMS.map((it) => it.color), []);
+
+  const backgroundColors = useMemo(
+    () =>
+      ITEMS.map((it) => (appliedKeys.has(it.modifier) ? "#444444" : it.color)),
+    [appliedKeys],
+  );
+
+  const allApplied = appliedKeys.size >= ITEMS.length;
 
   if (!show) return null;
 
   function handleStartSpin() {
     if (mustSpin) return;
-    const index = Math.floor(Math.random() * ITEMS.length);
-    setPrizeNumber(index);
+    if (allApplied) return;
 
+    // pick a random index that is not yet applied
+    let index = Math.floor(Math.random() * ITEMS.length);
+    let attempts = 0;
+    while (appliedKeys.has(ITEMS[index].modifier) && attempts < 50) {
+      index = Math.floor(Math.random() * ITEMS.length);
+      attempts += 1;
+    }
+
+    // if somehow couldn't find an unapplied item, abort
+    if (appliedKeys.has(ITEMS[index].modifier)) return;
+
+    setPrizeNumber(index);
     setMustSpin(true);
   }
 
   async function handleStop() {
     setMustSpin(false);
     const picked = ITEMS[prizeNumber];
-    // await setModifier(picked.modifier);
-    await setModifier("firstGuessReveal");
+    if (appliedKeys.has(picked.modifier)) return;
+
+    await setModifier("top100Words");
   }
 
   return (
@@ -96,10 +121,14 @@ export function Roulette() {
             <button
               type="button"
               onClick={handleStartSpin}
-              disabled={mustSpin}
+              disabled={mustSpin || allApplied}
               className="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-bold text-zinc-950 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {mustSpin ? "Girando..." : "Sortear"}
+              {allApplied
+                ? "Todos aplicados"
+                : mustSpin
+                  ? "Girando..."
+                  : "Sortear"}
             </button>
           </div>
         </div>

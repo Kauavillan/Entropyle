@@ -116,7 +116,8 @@ async function readWordList(length: number, icf: boolean, pool: WordPool) {
   const lines = content
     .split(/\r?\n/)
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(normalizeDictionaryEntry);
 
   if (pool === "top100") {
     return lines.slice(0, 100);
@@ -130,6 +131,10 @@ async function readWordList(length: number, icf: boolean, pool: WordPool) {
 }
 
 export default GET;
+
+function normalizeDictionaryEntry(entry: string) {
+  return entry.split(",")[0].trim();
+}
 
 function parseWordPool(value: string | null): WordPool {
   if (value === "top100" || value === "top300") {

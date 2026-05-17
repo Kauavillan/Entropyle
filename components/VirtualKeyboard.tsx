@@ -4,15 +4,22 @@ import { KEYBOARD_ROWS } from "@/lib/game/constants";
 import { KeyButton } from "@/components/items/KeyButton";
 import { useGameStore } from "@/stores/use-game-store";
 
-export function VirtualKeyboard() {
+type VirtualKeyboardProps = {
+  onFeedback: (message: string) => void;
+};
+
+export function VirtualKeyboard({ onFeedback }: VirtualKeyboardProps) {
   const keyboardState = useGameStore((state) => state.keyboardState);
   const appendLetter = useGameStore((state) => state.appendLetter);
   const removeLetter = useGameStore((state) => state.removeLetter);
   const submitGuess = useGameStore((state) => state.submitGuess);
 
-  function onKeyPress(value: string) {
+  async function onKeyPress(value: string) {
     if (value === "ENTER") {
-      void submitGuess();
+      const result = await submitGuess();
+      if (result.reason) {
+        onFeedback(result.reason);
+      }
       return;
     }
 

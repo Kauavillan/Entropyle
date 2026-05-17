@@ -13,6 +13,14 @@ type GameGridProps = {
   gridIndex: number;
 };
 
+const cellSizeClassByWordCount: Record<number, string> = {
+  // Mobile-first sizes (sm: overrides for larger screens)
+  1: "h-12 w-12 text-xl sm:h-14 sm:w-14 sm:text-2xl",
+  2: "h-10 w-10 text-lg sm:h-12 sm:w-12 sm:text-xl",
+  3: "h-9 w-9 text-sm sm:h-11 sm:w-11 sm:text-lg",
+  4: "h-8 w-8 text-sm sm:h-10 sm:w-10 sm:text-base",
+};
+
 export function GameGrid({ gridIndex }: GameGridProps) {
   const currentPhaseIndex = useGameStore((state) => state.currentPhaseIndex);
   const phaseGrids = useGameStore((state) => state.phaseGrids);
@@ -38,6 +46,8 @@ export function GameGrid({ gridIndex }: GameGridProps) {
   const showVowelCount = hasVowelCountModifier(appliedModifierKeys);
   const showFirstGuessReveal = hasFirstGuessRevealModifier(appliedModifierKeys);
   const vowelCount = showVowelCount ? countWordVowels(grid.answer) : null;
+  const cellSizeClass =
+    cellSizeClassByWordCount[phaseConfig.words] ?? cellSizeClassByWordCount[1];
 
   if (!grid) {
     return null;
@@ -99,6 +109,7 @@ export function GameGrid({ gridIndex }: GameGridProps) {
                   index={colIndex}
                   active={activeCell}
                   selectable={isCurrentRow}
+                  sizeClass={cellSizeClass}
                   onClick={
                     isCurrentRow ? () => setActiveIndex(colIndex) : undefined
                   }

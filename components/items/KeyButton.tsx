@@ -31,7 +31,7 @@ export function KeyButton({ value, state = "empty", onClick }: KeyButtonProps) {
       whileHover={{ y: -1 }}
       onClick={() => onClick(value)}
       className={[
-        "rounded-md px-2 py-2 text-xs sm:px-3 sm:py-3 sm:text-sm font-semibold tracking-wide transition-colors flex-1 min-w-[28px]",
+        "rounded-md px-2 py-2 text-xs sm:px-3 sm:py-3 sm:text-sm font-semibold tracking-wide transition-colors flex-1 min-w-[14px]",
         isActionKey
           ? "flex-[1.6] sm:flex-none sm:min-w-[88px] rounded-xl border border-white/25 bg-white/15 hover:bg-white/25 text-white flex items-center justify-center"
           : "",

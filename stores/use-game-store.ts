@@ -368,13 +368,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return { ok: false, reason: "Carregando palavras da fase atual." };
     }
 
-    if (isAwaitingNextPhase) {
-      return {
-        ok: false,
-        reason: "Fase concluida. Clique em avancar para continuar.",
-      };
-    }
-
     if (currentGuess.some((letter) => !letter)) {
       return {
         ok: false,
@@ -472,13 +465,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return {
         ok: true,
         reason: `Fim de jogo. Palavras restantes: ${missingWords}.`,
-      };
-    }
-
-    if (waitingNextPhase) {
-      return {
-        ok: true,
-        reason: `Fase ${currentPhaseIndex + 1} concluida. Clique em avancar fase.`,
       };
     }
 

@@ -43,6 +43,13 @@ export function TermoGame() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const currentPhase = currentPhaseIndex + 1;
   const currentPhaseConfig = PHASE_CONFIGS[currentPhaseIndex];
+  const boardWidthClass =
+    {
+      1: "max-w-3xl",
+      2: "max-w-4xl",
+      3: "max-w-5xl",
+      4: "max-w-7xl",
+    }[currentPhaseConfig.words] ?? "max-w-3xl";
 
   useEffect(() => {
     void initializeGame();
@@ -148,26 +155,18 @@ export function TermoGame() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45 }}
-        className="w-full max-w-3xl rounded-3xl border border-white/15 bg-zinc-900/65 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8"
+        className={`w-full ${boardWidthClass} rounded-3xl border border-white/15 bg-zinc-900/65 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-8`}
       >
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <header className="mb-6 flex flex-wrap items-center justify-center gap-3">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-zinc-50">
               ENTROPYLE
             </h1>
-            <p className="text-sm text-zinc-300">{titleMessage}</p>
+            <p className="text-sm text-zinc-300 text-center">{titleMessage}</p>
           </div>
-
-          <button
-            type="button"
-            onClick={handleResetGame}
-            className="rounded-md border border-white/20 px-3 py-2 text-sm font-semibold text-zinc-100 hover:bg-white/10"
-          >
-            Nova partida
-          </button>
         </header>
 
-        <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-400">
+        <div className="mb-4 flex flex-col sm:flex-row items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-400 flex-wrap">
           <p>
             Fase {currentPhase}/{TOTAL_PHASES}
           </p>
@@ -180,7 +179,7 @@ export function TermoGame() {
         </div>
 
         {appliedModifiers.length > 0 ? (
-          <div className="mb-4 flex gap-2">
+          <div className="mb-4 flex items-center justify-center gap-2 flex-wrap">
             {appliedModifiers.map((m) => (
               <span
                 key={m.modifier}
@@ -194,7 +193,7 @@ export function TermoGame() {
 
         <GameStatus message={feedbackMessage} />
         <GridsContainer />
-        <VirtualKeyboard />
+        <VirtualKeyboard onFeedback={setFeedbackMessage} />
       </motion.section>
 
       <NextPhaseModal
