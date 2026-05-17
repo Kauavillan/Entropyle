@@ -6,12 +6,14 @@ type SuccessModalProps = {
   open: boolean;
   onClose: () => void;
   onPlayAgain: () => void;
+  answers: string[];
 };
 
 export function SuccessModal({
   open,
   onClose,
   onPlayAgain,
+  answers,
 }: SuccessModalProps) {
   return (
     <AnimatePresence>
@@ -29,9 +31,12 @@ export function SuccessModal({
             transition={{ type: "spring", stiffness: 250, damping: 20 }}
             className="w-full max-w-md rounded-2xl border border-emerald-300/30 bg-zinc-950 p-6 text-zinc-50 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
           >
-            <h2 className="text-2xl font-bold">Voce acertou!</h2>
+            <h2 className="text-2xl font-bold">Você acertou!</h2>
             <p className="mt-2 text-sm text-zinc-300">
-              Excelente. A palavra foi descoberta com sucesso.
+              Excelente. Voce concluiu as quatro fases com sucesso.
+            </p>
+            <p className="mt-3 text-sm font-semibold text-emerald-200">
+              Palavras finais: {answers.join(", ")}
             </p>
 
             <div className="mt-6 flex gap-2">

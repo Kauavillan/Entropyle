@@ -1,5 +1,13 @@
 export const WORD_LENGTH = 5;
-export const MAX_ATTEMPTS = 6;
+
+export const PHASE_CONFIGS = [
+  { words: 1, maxAttempts: 6 },
+  { words: 2, maxAttempts: 7 },
+  { words: 3, maxAttempts: 8 },
+  { words: 4, maxAttempts: 9 },
+] as const;
+
+export const TOTAL_PHASES = PHASE_CONFIGS.length;
 
 export const WORD_BANK = [
   "amigo",

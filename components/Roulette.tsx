@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Wheel } from "react-custom-roulette";
-import { Modifier, useGameStore } from "@/stores/use-game-store";
-
-// type ModifierKey = "minusGuess" | "plusGuess" | "minusLength" | "plusLength";
+import { MODIFIER_REGISTRY } from "@/lib/game/modifiers/registry";
+import { useGameStore } from "@/stores/use-game-store";
 
 const COLORS_ARRAY = [
   "#ef4444", // red
@@ -15,28 +14,11 @@ const COLORS_ARRAY = [
   "#06b6d4", // teal
 ];
 
-interface RouletteItem extends Modifier {
+type RouletteItem = (typeof MODIFIER_REGISTRY)[number] & {
   color: string;
-}
+};
 
-const GUESSES_MODIFIERS: Modifier[] = [
-  { modifier: "minusGuess", description: "-1 tentativa" },
-  { modifier: "plusGuess", description: "+1 tentativa" },
-  { modifier: "minusLength", description: "-1 letra na palavra" },
-  { modifier: "plusLength", description: "+1 letra na palavra" },
-  {
-    modifier: "top100Words",
-    description: "top 100 fáceis",
-  },
-  {
-    modifier: "top300Words",
-    description: "top 300 difíceis",
-  },
-  { modifier: "accumulateAttempts", description: "Acumular tentativas" },
-  { modifier: "OSREVNI", description: "OSREVNI — inverter palavra" },
-];
-
-const ITEMS: RouletteItem[] = GUESSES_MODIFIERS.map((modifier, index) => ({
+const ITEMS: RouletteItem[] = MODIFIER_REGISTRY.map((modifier, index) => ({
   ...modifier,
   color: COLORS_ARRAY[index % COLORS_ARRAY.length],
 }));
@@ -49,6 +31,7 @@ const spinDuration = 0.5;
 export function Roulette() {
   const show = useGameStore((s) => s.showRoulette);
   const pendingPhase = useGameStore((s) => s.pendingPhaseIndex);
+
   const setModifier = useGameStore((s) => s.setModifier);
 
   const [mustSpin, setMustSpin] = useState(false);
@@ -73,10 +56,8 @@ export function Roulette() {
   async function handleStop() {
     setMustSpin(false);
     const picked = ITEMS[prizeNumber];
-    await setModifier({
-      modifier: picked.modifier,
-      description: picked.description,
-    });
+    // await setModifier(picked.modifier);
+    await setModifier("firstGuessReveal");
   }
 
   return (
@@ -88,10 +69,9 @@ export function Roulette() {
               Roleta do modificador
             </h3>
             <p className="mt-1 text-sm text-zinc-200">
-              Fase {pendingPhase ?? "-"}
+              Fase {pendingPhase !== null ? pendingPhase + 1 : "-"}
             </p>
           </div>
-          <div className="text-xs text-zinc-400">Selecione pelo topo</div>
         </div>
 
         <div className="flex flex-col items-center gap-4">

@@ -5,8 +5,22 @@ import { create } from "zustand";
 import { evaluateGuess } from "@/lib/game/evaluate-guess";
 import { PHASE_CONFIGS, TOTAL_PHASES, WORD_LENGTH } from "@/lib/game/constants";
 import { normalizeWord, randomWord } from "@/lib/game/helpers";
-import { applyGuessModifier } from "@/lib/game/modifiers/guessModifiers";
-import { applyLengthModifier } from "@/lib/game/modifiers/lengthModifiers";
+import {
+  buildWordRequestParams,
+  getModifierKeys,
+  getWordRequestExtras,
+  resolveModifierApplication,
+} from "@/lib/game/modifiers/effects";
+import {
+  hasFirstGuessRevealModifier,
+  pickFirstGuessRevealIndex,
+} from "@/lib/game/modifiers/firstGuessReveal";
+import { getModifierByKey } from "@/lib/game/modifiers/registry";
+import type {
+  DictionaryMode,
+  Modifier,
+  ModifierKey,
+} from "@/lib/game/modifiers/types";
 import type { GameStatus, LetterState, PhaseGridState } from "@/lib/game/types";
 
 type SubmitResult = {
@@ -15,10 +29,6 @@ type SubmitResult = {
 };
 
 type GuessLetters = string[];
-
-export type Modifier = { modifier: string; description: string };
-
-type DictionaryMode = "standard" | "top100" | "top300";
 
 type GameStore = {
   currentPhaseIndex: number;
@@ -49,7 +59,7 @@ type GameStore = {
   showRoulette: boolean;
   pendingPhaseIndex: number | null;
   dictionaryMode: DictionaryMode;
-  setModifier: (modifier: Modifier) => Promise<SubmitResult>;
+  setModifier: (modifierKey: ModifierKey) => Promise<SubmitResult>;
   startPhaseRoulette: (phaseIndex: number) => void;
   // Derived values
   effectiveWordLength: number;
@@ -59,6 +69,7 @@ type GameStore = {
 const INTRO_SESSION_STORAGE_KEY = "entropyle:intro-seen";
 
 const letterPriority: Record<LetterState, number> = {
+  "correct-hint": -1,
   empty: 0,
   absent: 1,
   present: 2,
@@ -79,26 +90,6 @@ function createEmptyGuess(length = WORD_LENGTH): GuessLetters {
   return Array.from({ length }, () => "");
 }
 
-function buildWordRequestParams(
-  length: number,
-  dictionaryMode: DictionaryMode,
-  extraParams: Record<string, string> = {},
-) {
-  const params = new URLSearchParams({
-    length: String(length),
-    ...extraParams,
-  });
-
-  if (dictionaryMode !== "standard") {
-    params.set("icf", "true");
-    params.set("pool", dictionaryMode);
-  } else {
-    params.set("icf", "false");
-  }
-
-  return params;
-}
-
 function clampIndex(index: number, length = WORD_LENGTH) {
   return Math.max(0, Math.min(length - 1, index));
 }
@@ -108,11 +99,20 @@ function getPhaseConfig(phaseIndex: number) {
   return PHASE_CONFIGS[safeIndex];
 }
 
-function createPhaseGrids(answers: string[]): PhaseGridState[] {
+function createPhaseGrids(
+  answers: string[],
+  appliedModifierKeys: ModifierKey[] = [],
+): PhaseGridState[] {
+  const revealFirstGuessLetter =
+    hasFirstGuessRevealModifier(appliedModifierKeys);
+
   return answers.map((answer) => ({
     answer,
     guesses: [],
     solved: false,
+    firstGuessRevealIndex: revealFirstGuessLetter
+      ? pickFirstGuessRevealIndex(answer.length)
+      : null,
   }));
 }
 
@@ -138,7 +138,7 @@ async function fetchPhaseAnswers(
   const words = (data.words ?? [])
     .map((word) => normalizeWord(word))
     .filter((word) => word.length === length);
-
+  console.log({ words });
   if (words.length < config.words) {
     throw new Error("Quantidade insuficiente de palavras para a fase.");
   }
@@ -385,12 +385,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const normalizedGuess = normalizeWord(currentGuess.join(""));
 
     try {
-      const appliedKeysForValidation = get().appliedModifiers.map((m) => m.modifier);
-      const extraForValidation: Record<string, string> = appliedKeysForValidation.includes(
-        "OSREVNI",
-      )
-        ? { reverse: "true" }
-        : {};
+      const extraForValidation = getWordRequestExtras(
+        getModifierKeys(get().appliedModifiers),
+      );
 
       const searchParams = buildWordRequestParams(
         currentWordLength,
@@ -542,63 +539,51 @@ export const useGameStore = create<GameStore>((set, get) => ({
     await get().resetGame();
   },
 
-  setModifier: async (modifier: Modifier) => {
+  setModifier: async (modifierKey: ModifierKey) => {
     const pending = get().pendingPhaseIndex ?? get().currentPhaseIndex;
+    const modifier = getModifierByKey(modifierKey);
     const applied = [...get().appliedModifiers, modifier];
-    const appliedKeys = applied.map((m) => m.modifier);
-    const nextDictionaryMode: DictionaryMode =
-      modifier.modifier === "top100Words"
-        ? "top100"
-        : modifier.modifier === "top300Words"
-          ? "top300"
-          : get().dictionaryMode;
-
-    // compute effective values
-    const effectiveWordLength = applyLengthModifier(WORD_LENGTH, appliedKeys);
     const phaseCfg = getPhaseConfig(pending);
-    let effectiveMaxAttempts = applyGuessModifier(
-      phaseCfg.maxAttempts,
-      appliedKeys,
-    );
-
-    if (appliedKeys.includes("accumulateAttempts")) {
-      const prevEffective = get().effectiveMaxAttempts ?? phaseCfg.maxAttempts;
-      const leftover = Math.max(0, prevEffective - get().attemptsUsed);
-      effectiveMaxAttempts += leftover;
-    }
+    const application = resolveModifierApplication({
+      appliedModifiers: applied,
+      selectedModifier: modifierKey,
+      currentDictionaryMode: get().dictionaryMode,
+      baseAttempts: phaseCfg.maxAttempts,
+      attemptsUsed: get().attemptsUsed,
+      previousEffectiveMaxAttempts:
+        get().effectiveMaxAttempts ?? phaseCfg.maxAttempts,
+      currentPhaseIndex: pending,
+    });
 
     set({
       appliedModifiers: applied,
       showRoulette: false,
       isLoadingPhase: true,
-      dictionaryMode: nextDictionaryMode,
-      effectiveWordLength,
-      effectiveMaxAttempts,
+      dictionaryMode: application.dictionaryMode,
+      effectiveWordLength: application.effectiveWordLength,
+      effectiveMaxAttempts: application.effectiveMaxAttempts,
     });
 
     try {
-      const extra: Record<string, string> = appliedKeys.includes("OSREVNI")
-        ? { reverse: "true" }
-        : {};
       const answers = await fetchPhaseAnswers(
         pending,
-        effectiveWordLength,
-        nextDictionaryMode,
-        extra,
+        application.effectiveWordLength,
+        application.dictionaryMode,
+        application.requestExtras,
       );
 
       set({
         currentPhaseIndex: pending,
-        phaseGrids: createPhaseGrids(answers),
+        phaseGrids: createPhaseGrids(answers, application.appliedKeys),
         boardRevision: get().boardRevision + 1,
-        currentGuess: createEmptyGuess(effectiveWordLength),
+        currentGuess: createEmptyGuess(application.effectiveWordLength),
         activeIndex: 0,
         attemptsUsed: 0,
         gameStatus: "playing",
         isAwaitingNextPhase: false,
         isLoadingPhase: false,
         isSuccessModalOpen: false,
-        dictionaryMode: nextDictionaryMode,
+        dictionaryMode: application.dictionaryMode,
         keyboardState: {},
         pendingPhaseIndex: null,
       });
@@ -607,21 +592,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } catch {
       const fallbackAnswers = createFallbackAnswers(
         pending,
-        effectiveWordLength,
+        application.effectiveWordLength,
       );
 
       set({
         currentPhaseIndex: pending,
-        phaseGrids: createPhaseGrids(fallbackAnswers),
+        phaseGrids: createPhaseGrids(fallbackAnswers, application.appliedKeys),
         boardRevision: get().boardRevision + 1,
-        currentGuess: createEmptyGuess(effectiveWordLength),
+        currentGuess: createEmptyGuess(application.effectiveWordLength),
         activeIndex: 0,
         attemptsUsed: 0,
         gameStatus: "playing",
         isAwaitingNextPhase: false,
         isLoadingPhase: false,
         isSuccessModalOpen: false,
-        dictionaryMode: nextDictionaryMode,
+        dictionaryMode: application.dictionaryMode,
         keyboardState: {},
         pendingPhaseIndex: null,
       });

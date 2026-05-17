@@ -3,29 +3,57 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
-import { MAX_ATTEMPTS, WORD_LENGTH } from "@/lib/game/constants";
-import { GameGrid } from "@/components/GameGrid";
+import { PHASE_CONFIGS, TOTAL_PHASES } from "@/lib/game/constants";
 import { GameStatus } from "@/components/GameStatus";
+import { IntroModal } from "@/components/IntroModal";
+import { NextPhaseModal } from "@/components/NextPhaseModal";
 import { SuccessModal } from "@/components/SuccessModal";
 import { VirtualKeyboard } from "@/components/VirtualKeyboard";
 import { useGameStore } from "@/stores/use-game-store";
 import GridsContainer from "./GridsContainer";
+import { Roulette } from "./Roulette";
 
 export function TermoGame() {
   const gameStatus = useGameStore((state) => state.gameStatus);
+  const currentPhaseIndex = useGameStore((state) => state.currentPhaseIndex);
+  const phaseGrids = useGameStore((state) => state.phaseGrids);
+  const attemptsUsed = useGameStore((state) => state.attemptsUsed);
+  const effectiveWordLength = useGameStore((s) => s.effectiveWordLength);
+  const effectiveMaxAttempts = useGameStore(
+    (s) =>
+      s.effectiveMaxAttempts ?? PHASE_CONFIGS[currentPhaseIndex].maxAttempts,
+  );
+  const appliedModifiers = useGameStore((s) => s.appliedModifiers);
+  const isAwaitingNextPhase = useGameStore(
+    (state) => state.isAwaitingNextPhase,
+  );
+  const isLoadingPhase = useGameStore((state) => state.isLoadingPhase);
+  const isIntroModalOpen = useGameStore((state) => state.isIntroModalOpen);
   const isSuccessModalOpen = useGameStore((state) => state.isSuccessModalOpen);
-  const guesses = useGameStore((state) => state.guesses);
+  const initializeGame = useGameStore((state) => state.initializeGame);
   const appendLetter = useGameStore((state) => state.appendLetter);
   const removeLetter = useGameStore((state) => state.removeLetter);
   const moveActiveIndex = useGameStore((state) => state.moveActiveIndex);
   const submitGuess = useGameStore((state) => state.submitGuess);
+  const advancePhase = useGameStore((state) => state.advancePhase);
   const closeSuccessModal = useGameStore((state) => state.closeSuccessModal);
+  const closeIntroModal = useGameStore((state) => state.closeIntroModal);
   const resetGame = useGameStore((state) => state.resetGame);
 
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const currentPhase = currentPhaseIndex + 1;
+  const currentPhaseConfig = PHASE_CONFIGS[currentPhaseIndex];
 
   useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
+    void initializeGame();
+  }, [initializeGame]);
+
+  useEffect(() => {
+    async function onKeyDown(event: KeyboardEvent) {
+      if (isIntroModalOpen) {
+        return;
+      }
+
       const key = event.key;
 
       if (key === "ArrowLeft") {
@@ -41,7 +69,7 @@ export function TermoGame() {
       }
 
       if (key === "Enter") {
-        const result = submitGuess();
+        const result = await submitGuess();
         if (result.reason) {
           setFeedbackMessage(result.reason);
         }
@@ -60,7 +88,13 @@ export function TermoGame() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [appendLetter, moveActiveIndex, removeLetter, submitGuess]);
+  }, [
+    appendLetter,
+    isIntroModalOpen,
+    moveActiveIndex,
+    removeLetter,
+    submitGuess,
+  ]);
 
   useEffect(() => {
     if (!feedbackMessage) {
@@ -75,6 +109,14 @@ export function TermoGame() {
   }, [feedbackMessage]);
 
   const titleMessage = useMemo(() => {
+    if (isLoadingPhase) {
+      return "Carregando fase";
+    }
+
+    if (isAwaitingNextPhase) {
+      return "Fase concluida";
+    }
+
     if (gameStatus === "won") {
       return "Partida concluida";
     }
@@ -84,7 +126,21 @@ export function TermoGame() {
     }
 
     return "Descubra a palavra";
-  }, [gameStatus]);
+  }, [gameStatus, isAwaitingNextPhase, isLoadingPhase]);
+
+  async function handleResetGame() {
+    const result = await resetGame();
+    if (result.reason) {
+      setFeedbackMessage(result.reason);
+    }
+  }
+
+  async function handleAdvancePhase() {
+    const result = await advancePhase();
+    if (result.reason) {
+      setFeedbackMessage(result.reason);
+    }
+  }
 
   return (
     <>
@@ -104,31 +160,57 @@ export function TermoGame() {
 
           <button
             type="button"
-            onClick={resetGame}
+            onClick={handleResetGame}
             className="rounded-md border border-white/20 px-3 py-2 text-sm font-semibold text-zinc-100 hover:bg-white/10"
           >
-            Nova palavra
+            Nova partida
           </button>
         </header>
 
         <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.2em] text-zinc-400">
-          <p>{MAX_ATTEMPTS} tentativas</p>
-          <p>{WORD_LENGTH} letras</p>
           <p>
-            {guesses.length}/{MAX_ATTEMPTS}
+            Fase {currentPhase}/{TOTAL_PHASES}
+          </p>
+          <p>{effectiveMaxAttempts} tentativas</p>
+          <p>{currentPhaseConfig.words} palavra(s)</p>
+          <p>{effectiveWordLength} letras</p>
+          <p>
+            {attemptsUsed}/{effectiveMaxAttempts}
           </p>
         </div>
+
+        {appliedModifiers.length > 0 ? (
+          <div className="mb-4 flex gap-2">
+            {appliedModifiers.map((m) => (
+              <span
+                key={m.modifier}
+                className="rounded-sm bg-zinc-800 px-2 py-1 text-xs text-zinc-200"
+              >
+                {m.description}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <GameStatus message={feedbackMessage} />
         <GridsContainer />
         <VirtualKeyboard />
       </motion.section>
 
+      <NextPhaseModal
+        open={isAwaitingNextPhase}
+        phaseNumber={currentPhase + 1}
+        onAdvance={handleAdvancePhase}
+      />
+
       <SuccessModal
         open={isSuccessModalOpen}
         onClose={closeSuccessModal}
-        onPlayAgain={resetGame}
+        onPlayAgain={handleResetGame}
+        answers={phaseGrids.map((grid) => grid.answer)}
       />
+      <IntroModal open={isIntroModalOpen} onStart={closeIntroModal} />
+      <Roulette />
     </>
   );
 }

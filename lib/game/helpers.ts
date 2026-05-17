@@ -1,7 +1,7 @@
 import { WORD_BANK } from "@/lib/game/constants";
 
 export function normalizeWord(value: string) {
-  return value.trim().toUpperCase();
+  return value.trim().normalize("NFD").replace(/\p{M}/gu, "").toUpperCase();
 }
 
 export function randomWord() {

@@ -15,6 +15,7 @@ type KeyButtonProps = {
 const stateClassMap: Record<LetterState, string> = {
   empty: "bg-white/10 text-white hover:bg-white/20",
   correct: "bg-emerald-500 text-white",
+  "correct-hint": "bg-emerald-500 text-white",
   present: "bg-amber-400 text-zinc-900",
   absent: "bg-zinc-600 text-zinc-100",
 };

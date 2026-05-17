@@ -1,4 +1,5 @@
 import type { GuessEvaluation } from "@/lib/game/types";
+import { normalizeWord } from "@/lib/game/helpers";
 
 export function evaluateGuess(
   guess: string,
@@ -6,6 +7,12 @@ export function evaluateGuess(
 ): GuessEvaluation[] {
   const guessChars = guess.split("");
   const answerChars = answer.split("");
+  const normalizedGuessChars = guessChars.map((letter) =>
+    normalizeWord(letter),
+  );
+  const normalizedAnswerChars = answerChars.map((letter) =>
+    normalizeWord(letter),
+  );
 
   const result: GuessEvaluation[] = guessChars.map((letter) => ({
     letter,
@@ -14,19 +21,19 @@ export function evaluateGuess(
 
   const letterCounts: Record<string, number> = {};
 
-  answerChars.forEach((letter) => {
+  normalizedAnswerChars.forEach((letter) => {
     letterCounts[letter] = (letterCounts[letter] ?? 0) + 1;
   });
 
   for (let index = 0; index < guessChars.length; index += 1) {
-    if (guessChars[index] === answerChars[index]) {
+    if (normalizedGuessChars[index] === normalizedAnswerChars[index]) {
       result[index].state = "correct";
-      letterCounts[guessChars[index]] -= 1;
+      letterCounts[normalizedGuessChars[index]] -= 1;
     }
   }
 
   for (let index = 0; index < guessChars.length; index += 1) {
-    const currentLetter = guessChars[index];
+    const currentLetter = normalizedGuessChars[index];
 
     if (result[index].state === "correct") {
       continue;

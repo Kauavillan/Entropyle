@@ -1,4 +1,9 @@
-export type LetterState = "empty" | "correct" | "present" | "absent";
+export type LetterState =
+  | "empty"
+  | "correct"
+  | "correct-hint"
+  | "present"
+  | "absent";
 
 export type GuessEvaluation = {
   letter: string;
@@ -8,6 +13,13 @@ export type GuessEvaluation = {
 export type SubmittedGuess = {
   word: string;
   evaluation: GuessEvaluation[];
+};
+
+export type PhaseGridState = {
+  answer: string;
+  guesses: SubmittedGuess[];
+  solved: boolean;
+  firstGuessRevealIndex: number | null;
 };
 
 export type GameStatus = "playing" | "won" | "lost";

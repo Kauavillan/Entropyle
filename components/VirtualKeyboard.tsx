@@ -12,7 +12,7 @@ export function VirtualKeyboard() {
 
   function onKeyPress(value: string) {
     if (value === "ENTER") {
-      submitGuess();
+      void submitGuess();
       return;
     }
 

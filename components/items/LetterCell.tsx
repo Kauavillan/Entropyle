@@ -17,6 +17,7 @@ type LetterCellProps = {
 const stateClassMap: Record<LetterState, string> = {
   empty: "border-white/25 bg-white/5 text-white",
   correct: "border-emerald-300/70 bg-emerald-500 text-white",
+  "correct-hint": "border-emerald-300/70 bg-emerald-500 text-white opacity-40",
   present: "border-amber-300/70 bg-amber-400 text-zinc-900",
   absent: "border-white/25 bg-white/5 text-white",
 };
